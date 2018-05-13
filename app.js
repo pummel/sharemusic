@@ -1,14 +1,23 @@
 var express = require('express');
+var expressValidator = require('express-validator');
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-
-var index = require('./routes/index');
-var users = require('./routes/users');
+var mongoose = require('mongoose');
 
 var app = express();
+
+// var db = (app.settings.env == 'development') ? 'mongodb://localhost/sharemusic' : 'mongodb://admin:admin@ds137149.mlab.com:37149/sharemusic';
+var db = 'mongodb://admin:admin@ds117540.mlab.com:17540/sharemusic';
+mongoose.connect(db);
+console.log('Using DB: ' + db);
+
+var index = require('./routes/index');
+
+//Controllers
+var userController = require('./controllers/userController');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -22,8 +31,26 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Express Validator
+app.use(expressValidator({
+  errorFormatter: function(param, msg, value) {
+    var namespace = param.split('.')
+    , root = namespace.shift()
+    , formParam = root;
+
+    while(namespace.length) {
+      formParam += '[' + namespace.shift() + ']';
+    }
+    return {
+      param: formParam,
+      msg: msg,
+      value: value
+    };
+  }
+}));
+
 app.use('/', index);
-app.use('/users', users);
+app.use('/user', userController);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
