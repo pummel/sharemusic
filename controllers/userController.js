@@ -41,6 +41,15 @@ router
                 return res.status(200).send(savedUser);
             });
         }
-    });
+    })
+
+    // Removes user by username
+    .post('/remove/:username', (req, res) => {
+        const query = { username: req.params['username'] };
+        User.deleteUser(query, (err, deletedUser) => {
+            if (err) return res.status(500).send('user could not been deleted');
+            return res.status(200).send(deletedUser);
+        });
+    })
         
 module.exports = router;

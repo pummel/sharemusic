@@ -48,3 +48,7 @@ module.exports.getUserById = function(id, callback){
 module.exports.getUser = (query, callback) => {
     User.findOne(query, callback);
 }
+
+module.exports.deleteUser = (query, callback) => {
+    User.remove(query, callback);
+}
