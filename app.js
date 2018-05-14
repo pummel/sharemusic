@@ -1,5 +1,8 @@
 var express = require('express');
 var expressValidator = require('express-validator');
+var session = require('express-session');
+var passport = require('passport');
+var localStrategy = require('passport-local').Strategy;
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
@@ -7,17 +10,16 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 
+//Controllers
+var indexController = require('./controllers/indexController');
+var userController = require('./controllers/userController');
+
 var app = express();
 
-// var db = (app.settings.env == 'development') ? 'mongodb://localhost/sharemusic' : 'mongodb://admin:admin@ds137149.mlab.com:37149/sharemusic';
+// DB Configuration
 var db = 'mongodb://admin:admin@ds117540.mlab.com:17540/sharemusic';
 mongoose.connect(db);
 console.log('Using DB: ' + db);
-
-var index = require('./routes/index');
-
-//Controllers
-var userController = require('./controllers/userController');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -30,6 +32,17 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Express Session
+app.use(session({
+  secret: 'secret',
+  saveUninitialized: true,
+  resave: true
+}));
+
+// Passport init
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Express Validator
 app.use(expressValidator({
@@ -49,7 +62,15 @@ app.use(expressValidator({
   }
 }));
 
-app.use('/', index);
+// Global Vars
+app.use(function (req, res, next) {
+  res.locals.title = 'share Your Music';
+  res.locals.user = req.user || null;
+  res.locals.errors = null;
+  next();
+});
+
+app.use('/', indexController);
 app.use('/user', userController);
 
 // catch 404 and forward to error handler

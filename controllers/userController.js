@@ -1,24 +1,44 @@
 var express = require('express');
 var router = express.Router();
 var bodyParser = require('body-parser');
-
-router.use(bodyParser.urlencoded({ extended: true }));
-router.use(bodyParser.json());
+var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
 
 var User = require('../models/User.model');
 
-router
-    
-    // Find an user
-    .get('/', (req, res) => {
-        const query = req.query;
-        User.getUser(query, (err, user) => {
-            if (err) return res.status(500).send('requesterror');
-            return res.status(200).send(user);
+passport.use(new LocalStrategy(
+    function(username, password, done){
+        User.getUserByUsername(username, function(err, user){
+            if (err) throw err;
+            if (!user) {
+                return done(null, false, {message: 'Unknown User'});
+            }
+
+            User.comparePassword(password, user.password, function(err, isMatch){
+                if (err) throw err;
+                if (isMatch) {
+                    return done(null, user);
+                } else {
+                    return done(null, false, {message: 'Invalid Password'});
+                }
+            });
         });
     })
+);
 
-    // Add a new user to the DB
+passport.serializeUser(function(user, done){
+    done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done){
+    User.getUserById(id, function(err, user){
+        done(err, user);
+    });
+});
+
+router
+
+    // Creates a new User
     .post('/', (req, res) => {
         req.checkBody('name', 'Name is required').notEmpty();
         req.checkBody('username', 'Username is required').notEmpty();
@@ -50,6 +70,20 @@ router
             if (err) return res.status(500).send('user could not been deleted');
             return res.status(200).send(deletedUser);
         });
+    })
+
+    // Login user to server session
+    .post('/login', 
+        passport.authenticate('local', {successRedirect: '/', failureRedirect: '/login', }), 
+        (req, res, next) => {
+            res.redirect('/');
+        }
+    )
+    
+    // Logout user
+    .get('/logout', (req, res) => {
+        req.logout();
+        res.redirect('/');
     })
         
 module.exports = router;
